@@ -4,78 +4,59 @@
     <meta charset="UTF-8">
     <title>Deadlock Cloud Radar</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: sans-serif;
+        body { background-color: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        .radar-container { 
+            position: relative; 
+            width: 600px; 
+            height: 600px; 
+            background-color: #1e1e1e; 
+            border: 2px solid #444; 
+            border-radius: 8px; 
+            overflow: hidden; 
         }
-        .radar-container {
-            position: relative;
-            width: 600px;
-            height: 600px;
-            background-color: #1e1e1e; /* Поменяй на #0000ff для теста кэша */
-            border: 2px solid #444;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            overflow: hidden;
+        /* Центральное перекрестие для калибровки */
+        .radar-container::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255,255,255,0.1); }
+        .radar-container::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: rgba(255,255,255,0.1); }
+        
+        .enemy-dot { 
+            position: absolute; 
+            width: 12px; 
+            height: 12px; 
+            background-color: #ff0000; 
+            border: 2px solid white; 
+            border-radius: 50%; 
+            transform: translate(-50%, -50%); /* Центрирует саму точку */
+            box-shadow: 0 0 10px red; 
+            z-index: 9999; 
         }
-        .enemy-dot {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: #ff0000;
-            border: 2px solid white;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px red;
-            z-index: 9999;
-        }
-        .status {
-            margin-top: 15px;
-            color: #888;
-            font-size: 14px;
-            background: #1e1e1e;
-            padding: 10px;
-            border-radius: 5px;
-        }
+        .status { margin-top: 15px; color: #888; font-size: 14px; background: #1e1e1e; padding: 10px; border-radius: 5px; text-align: center; }
     </style>
 </head>
 <body>
 
     <h2>Cloud Radar</h2>
     <div class="radar-container" id="radar"></div>
-    <div class="status" id="status">Инициализация...</div>
+    <div class="status" id="status">Загрузка...</div>
 
 <script>
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
-    const radar = document.getElementById("radar");
-    const statusText = document.getElementById("status");
+    
+    // --- НАСТРОЙКИ ---
+    const VERSION = "FIX_3"; // Меняй при каждом сохранении!
+    const ZOOM = 1200;       // Попробуй поставить 800, если не разлетаются
+    const CENTER_X = 1230;   
+    const CENTER_Y = 1030;
+    // -----------------
 
     async function fetchRadarData() {
-        // --- НАСТРОЙКИ ВНУТРИ ФУНКЦИИ (ЧТОБЫ ТОЧНО ОБНОВЛЯЛИСЬ) ---
-        
-        const ZOOM = 30000;      // Чем МЕНЬШЕ, тем ДАЛЬШЕ враги друг от друга
-        const CENTER_X = 1230;  // Твой X из игры
-        const CENTER_Y = 1030;  // Твой Y из игры
-        
-        // -------------------------------------------------------
-
         try {
-            const response = await fetch(dbUrl + "?nocache=" + Date.now());
+            const response = await fetch(dbUrl + "?t=" + Date.now());
             const data = await response.json();
+            const radar = document.getElementById("radar");
+            const statusText = document.getElementById("status");
             
             radar.innerHTML = ""; 
-            
-            if (!data) {
-                statusText.innerText = "База пуста. Ждем данных...";
-                return;
-            }
+            if (!data) return;
 
             const enemiesArray = Array.isArray(data) ? data : Object.values(data);
             
@@ -83,36 +64,33 @@
                 if (enemy && typeof enemy.x === 'number') {
                     const dot = document.createElement("div");
                     dot.className = "enemy-dot";
+                    
+                    // НОВАЯ ПРЯМАЯ МАТЕМАТИКА
+                    // Вычисляем отклонение от центра в пикселях (300 - это половина 600px радара)
+                    let x_offset_px = (enemy.x - CENTER_X) / (ZOOM / 300);
+                    let y_offset_px = (enemy.y - CENTER_Y) / (ZOOM / 300);
 
-                    // Расчет позиции в процентах
-                    let posX = 50 + ((enemy.x - CENTER_X) / (ZOOM * 2)) * 100;
-                    let posY = 50 - ((enemy.y - CENTER_Y) / (ZOOM * 2)) * 100;
+                    let final_x = 300 + x_offset_px;
+                    let final_y = 300 - y_offset_px; // Инверсия Y для корректного отображения
 
-                    // Отрисовка
-                    dot.style.left = posX + "%";
-                    dot.style.top = posY + "%";
+                    dot.style.left = final_x + "px";
+                    dot.style.top = final_y + "px";
                     
                     radar.appendChild(dot);
                 }
             });
             
             if (enemiesArray[0]) {
-                // Добавили ZOOM в текст, чтобы ты видел, применились ли изменения
                 statusText.innerHTML = `
-                    <b>Врагов:</b> ${enemiesArray.length} | 
-                    <b>Zoom:</b> ${ZOOM} | 
-                    <b>X:</b> ${Math.round(enemiesArray[0].x)} <b>Y:</b> ${Math.round(enemiesArray[0].y)}
+                    <b>Версия:</b> ${VERSION} | <b>Zoom:</b> ${ZOOM} <br>
+                    <b>Координаты первого врага в базе:</b> X: ${Math.round(enemiesArray[0].x)} Y: ${Math.round(enemiesArray[0].y)}
                 `;
             }
-        } catch (err) {
-            statusText.innerText = "Ошибка сети или Firebase";
-            console.error(err);
-        }
+        } catch (err) { console.error(err); }
     }
 
-    // Запускаем сразу и потом каждые 500мс
-    fetchRadarData();
     setInterval(fetchRadarData, 500);
+    fetchRadarData();
 </script>
 </body>
 </html>
