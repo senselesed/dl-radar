@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>Deadlock Cloud Radar</title>
     <style>
-        /* ВОТ ЭТО И ЕСТЬ CSS */
         body {
             background-color: #121212;
             color: #ffffff;
@@ -16,7 +15,6 @@
             margin: 0;
             font-family: sans-serif;
         }
-
         .radar-container {
             position: relative;
             width: 600px;
@@ -25,21 +23,19 @@
             border: 2px solid #444;
             border-radius: 8px;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            overflow: hidden; /* Чтобы точки не вылетали за границы */
+            overflow: hidden;
         }
-
         .enemy-dot {
             position: absolute;
             width: 15px;
             height: 15px;
-            background-color: #ff0000; /* Ярко-красный */
+            background-color: #ff0000;
             border: 2px solid white;
             border-radius: 50%;
             transform: translate(-50%, -50%);
             box-shadow: 0 0 10px red;
-            z-index: 9999; /* Поверх всего */
+            z-index: 9999;
         }
-
         .status {
             margin-top: 15px;
             color: #888;
@@ -49,8 +45,7 @@
 <body>
 
     <h2>Cloud Radar</h2>
-    <div class="radar-container" id="radar">
-        </div>
+    <div class="radar-container" id="radar"></div>
     <div class="status" id="status">Загрузка...</div>
 
 <script>
@@ -58,36 +53,39 @@
     const radar = document.getElementById("radar");
     const statusText = document.getElementById("status");
 
-    // --- НАСТРОЙКИ ЦЕНТРА И МАСШТАБА ---
-    
-    // 1. ZOOM (Масштаб): Чем МЕНЬШЕ число, тем ДАЛЬШЕ точки друг от друга.
-    // Если все кучей в центре - уменьшай. Если разлетелись за края - увеличивай.
-    let ZOOM = 12000; 
-
-    // 2. СМЕЩЕНИЕ (Центровка): 
-    // Если всё СЛИШКОМ СПРАВА — УМЕНЬШАЙ CENTER_X.
-    // Если всё СЛИШКОМ СВЕРХУ — УВЕЛИЧИВАЙ CENTER_Y.
-    let CENTER_X = 0; 
-    let CENTER_Y = 0; 
-
-    // ------------------------------------
+    // --- НАСТРОЙКИ КАЛИБРОВКИ ---
+    let ZOOM = 12000;  
+    let CENTER_X = 13310; // Подставил твой X из логов
+    let CENTER_Y = -8289; // Подставил твой Y из логов
+    // ----------------------------
 
     async function fetchRadarData() {
         try {
             const response = await fetch(dbUrl + "?t=" + Date.now());
+            
+            if (!response.ok) {
+                statusText.innerText = "Ошибка Firebase: " + response.status;
+                return;
+            }
+
             const data = await response.json();
             radar.innerHTML = ""; 
             
-            if (!data) return;
+            if (data === null) {
+                statusText.innerText = "База пуста (null)";
+                return;
+            }
+
+            // Важно: Firebase может вернуть данные в разном формате, обрабатываем оба
             const enemiesArray = Array.isArray(data) ? data : Object.values(data);
             
+            let count = 0;
             enemiesArray.forEach(enemy => {
-                if (enemy && typeof enemy.x === 'number') {
+                if (enemy && typeof enemy.x === 'number' && typeof enemy.y === 'number') {
                     const dot = document.createElement("div");
                     dot.className = "enemy-dot";
 
-                    // Вычисляем позицию от центра (50% - это середина радара)
-                    // Делим на (ZOOM * 2), чтобы вписать в диапазон
+                    // Расчет позиции относительно центра
                     let posX = 50 + ((enemy.x - CENTER_X) / (ZOOM * 2)) * 100;
                     let posY = 50 - ((enemy.y - CENTER_Y) / (ZOOM * 2)) * 100;
 
@@ -95,15 +93,26 @@
                     dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
                     
                     radar.appendChild(dot);
+                    count++;
                 }
             });
-            statusText.innerText = `Врагов: ${enemiesArray.length} | X: ${enemiesArray[0].x.toFixed(0)} Y: ${enemiesArray[0].y.toFixed(0)}`;
+
+            if (count > 0) {
+                statusText.innerText = `Врагов: ${count} | X: ${enemiesArray[0].x.toFixed(0)} Y: ${enemiesArray[0].y.toFixed(0)}`;
+            } else {
+                statusText.innerText = "Врагов нет в радиусе/данные неверны";
+            }
+
         } catch (err) {
-            statusText.innerText = "Ошибка получения данных";
+            // Теперь мы увидим реальную причину ошибки в статусе
+            statusText.innerText = "Ошибка: " + err.message;
+            console.error(err);
         }
     }
 
+    // Интервал 500мс для плавности
     setInterval(fetchRadarData, 500);
+    fetchRadarData(); 
 </script>
 </body>
 </html>
