@@ -26,7 +26,7 @@
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
     
     // --- КОРРЕКТИРОВКА МЕТОК ---
-    const VERSION = "ALIGN_V3"; 
+    const VERSION = "alpha v1"; 
     const ZOOM = 210;        // Чуть увеличил зум для точности проходов
     const CENTER_X = 1250;   // Сместил по горизонтали
     const CENTER_Y = 870;    // Сместил по вертикали под метки
@@ -63,7 +63,7 @@
                 }
             });
             if (enemiesArray[0]) {
-                statusText.innerHTML = `Версия: ${VERSION} | X: ${Math.round(enemiesArray[0].x)} Y: ${Math.round(enemiesArray[0].y)}`;
+                statusText.innerHTML = `larpsense cloud: ${VERSION}`;
             }
         } catch (err) { console.error(err); }
     }
