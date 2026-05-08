@@ -58,15 +58,19 @@
     const radar = document.getElementById("radar");
     const statusText = document.getElementById("status");
 
-    // --- НАСТРОЙКИ МАСШТАБА ---
-    // Уменьшай это число, чтобы "раздвинуть" врагов друг от друга
-    // Попробуй 10000, 7000, 5000 или даже 3000
-    let ZOOM = 8000; 
+    // --- НАСТРОЙКИ ЦЕНТРА И МАСШТАБА ---
     
-    // Если все враги смещены в бок, подправь эти числа (смещение)
-    let OFFSET_X = 0;
-    let OFFSET_Y = 0;
-    // -------------------------
+    // 1. ZOOM (Масштаб): Чем МЕНЬШЕ число, тем ДАЛЬШЕ точки друг от друга.
+    // Если все кучей в центре - уменьшай. Если разлетелись за края - увеличивай.
+    let ZOOM = 12000; 
+
+    // 2. СМЕЩЕНИЕ (Центровка): 
+    // Если всё СЛИШКОМ СПРАВА — УМЕНЬШАЙ CENTER_X.
+    // Если всё СЛИШКОМ СВЕРХУ — УВЕЛИЧИВАЙ CENTER_Y.
+    let CENTER_X = 0; 
+    let CENTER_Y = 0; 
+
+    // ------------------------------------
 
     async function fetchRadarData() {
         try {
@@ -75,7 +79,6 @@
             radar.innerHTML = ""; 
             
             if (!data) return;
-
             const enemiesArray = Array.isArray(data) ? data : Object.values(data);
             
             enemiesArray.forEach(enemy => {
@@ -83,31 +86,20 @@
                     const dot = document.createElement("div");
                     dot.className = "enemy-dot";
 
-// --- НАСТРОЙКИ КАЛИБРОВКИ ---
-    
-    // ZOOM отвечает за то, насколько далеко точки друг от друга. 
-    // Если они слишком кучно — уменьшай это число (например до 10000).
-    let ZOOM = 15000; 
-    
-    // OFFSET_X двигает всё влево/вправо. 
-    // Если всё в левом углу — увеличивай это число (попробуй 5000, 10000, 15000).
-    let OFFSET_X = 15000; 
-    
-    // OFFSET_Y двигает всё вверх/вниз.
-    let OFFSET_Y = 15000;
-    
-    // ----------------------------
+                    // Вычисляем позицию от центра (50% - это середина радара)
+                    // Делим на (ZOOM * 2), чтобы вписать в диапазон
+                    let posX = 50 + ((enemy.x - CENTER_X) / (ZOOM * 2)) * 100;
+                    let posY = 50 - ((enemy.y - CENTER_Y) / (ZOOM * 2)) * 100;
 
-                    // Ограничение, чтобы не вылезали за рамку
                     dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
                     dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
                     
                     radar.appendChild(dot);
                 }
             });
-            statusText.innerText = "Врагов: " + enemiesArray.length + " | Zoom: " + ZOOM;
+            statusText.innerText = `Врагов: ${enemiesArray.length} | X: ${enemiesArray[0].x.toFixed(0)} Y: ${enemiesArray[0].y.toFixed(0)}`;
         } catch (err) {
-            statusText.innerText = "Ошибка данных";
+            statusText.innerText = "Ошибка получения данных";
         }
     }
 
