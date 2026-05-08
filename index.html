@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Deadlock Cloud Radar [NO DELAY]</title>
+    <title>Deadlock Cloud Radar[FINAL]</title>
     <style>
         body { background-color: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .radar-container { 
@@ -14,7 +14,7 @@
             position: absolute; width: 32px; height: 32px; 
             border: 2px solid white; border-radius: 50%; 
             transform: translate(-50%, -50%); z-index: 1000; 
-            transition: left 0.2s linear, top 0.2s linear; /* Плавность совпадает с Lua */
+            transition: left 0.2s linear, top 0.2s linear; /* Плавность 0.2с под стать скрипту */
             background-size: cover; background-position: center; background-color: #111;
             display: flex; align-items: center; justify-content: center;
             font-size: 14px; text-shadow: 1px 1px 2px black; font-weight: bold;
@@ -38,6 +38,7 @@
     const CENTER_X = 1250, CENTER_Y = 870, ZOOM = 210;
     const BASE_ICON_URL = "https://raw.githubusercontent.com/senselesed/dl-radar/main/icons/";
 
+    // Полная база всех существующих героев с новыми ID
     const idToIcon = {
         1: "Infernus.png", 2: "Seven.png", 3: "Vindicta.png", 4: "Lady_Geist.png",
         6: "Abrams.png", 7: "Wraith.png", 8: "McGinnis.png", 10: "Paradox.png",
@@ -45,7 +46,10 @@
         15: "Bebop.png", 16: "Calico.png", 17: "Grey_Talon.png", 18: "Mo_&_Krill.png",
         19: "Shiv.png", 20: "Ivy.png", 25: "Warden.png", 27: "Yamato.png",
         31: "Lash.png", 35: "Viscous.png", 50: "Pocket.png", 52: "Mirage.png",
-        58: "Vyper.png", 60: "Sinclair.png"
+        58: "Vyper.png", 60: "Sinclair.png", 63: "Mina.png", 64: "Drifter.png", 
+        65: "Venator.png", 66: "Victor.png", 67: "Paige.png", 69: "The_Doorman.png",
+        72: "Billy.png", 76: "Graves.png", 77: "Apollo.png", 79: "Rem.png", 
+        80: "Silver.png", 81: "Celeste.png"
     };
 
     const heroIcons = {
