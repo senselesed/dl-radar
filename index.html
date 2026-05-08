@@ -53,47 +53,54 @@
         </div>
     <div class="status" id="status">Загрузка...</div>
 
-    <script>
-        // Сюда вставляешь тот JavaScript с fetch, который мы обсуждали выше
-        // Не забудь заменить ссылку на свою!
-        const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
-        const radar = document.getElementById("radar");
-        const statusText = document.getElementById("status");
-        const MAP_BOUNDS = 5; 
+<script>
+    const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
+    const radar = document.getElementById("radar");
+    const statusText = document.getElementById("status");
 
-        async function fetchRadarData() {
-            try {
-                const response = await fetch(dbUrl + "?t=" + Date.now());
-                const data = await response.json();
-                radar.innerHTML = ""; 
-                
-                if (!data) {
-                    statusText.innerText = "База пуста";
-                    return;
+    // --- НАСТРОЙКИ МАСШТАБА ---
+    // Уменьшай это число, чтобы "раздвинуть" врагов друг от друга
+    // Попробуй 10000, 7000, 5000 или даже 3000
+    let ZOOM = 8000; 
+    
+    // Если все враги смещены в бок, подправь эти числа (смещение)
+    let OFFSET_X = 0;
+    let OFFSET_Y = 0;
+    // -------------------------
+
+    async function fetchRadarData() {
+        try {
+            const response = await fetch(dbUrl + "?t=" + Date.now());
+            const data = await response.json();
+            radar.innerHTML = ""; 
+            
+            if (!data) return;
+
+            const enemiesArray = Array.isArray(data) ? data : Object.values(data);
+            
+            enemiesArray.forEach(enemy => {
+                if (enemy && typeof enemy.x === 'number') {
+                    const dot = document.createElement("div");
+                    dot.className = "enemy-dot";
+
+                    // Новая формула с ZOOM и OFFSET
+                    let posX = ((enemy.x + OFFSET_X + ZOOM) / (ZOOM * 2)) * 100;
+                    let posY = ((ZOOM - (enemy.y + OFFSET_Y)) / (ZOOM * 2)) * 100;
+
+                    // Ограничение, чтобы не вылезали за рамку
+                    dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
+                    dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
+                    
+                    radar.appendChild(dot);
                 }
-
-                const enemiesArray = Array.isArray(data) ? data : Object.values(data);
-                
-                enemiesArray.forEach(enemy => {
-                    if (enemy && typeof enemy.x === 'number') {
-                        const dot = document.createElement("div");
-                        dot.className = "enemy-dot";
-
-                        let posX = ((enemy.x + MAP_BOUNDS) / (MAP_BOUNDS * 2)) * 100;
-                        let posY = ((MAP_BOUNDS - enemy.y) / (MAP_BOUNDS * 2)) * 100;
-
-                        dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
-                        dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
-                        
-                        radar.appendChild(dot);
-                    }
-                });
-                statusText.innerText = "Врагов на радаре: " + enemiesArray.length;
-            } catch (err) {
-                statusText.innerText = "Ошибка: " + err.message;
-            }
+            });
+            statusText.innerText = "Врагов: " + enemiesArray.length + " | Zoom: " + ZOOM;
+        } catch (err) {
+            statusText.innerText = "Ошибка данных";
         }
-        setInterval(fetchRadarData, 500);
-    </script>
+    }
+
+    setInterval(fetchRadarData, 500);
+</script>
 </body>
 </html>
