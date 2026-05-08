@@ -16,6 +16,8 @@
             transform: translate(-50%, -50%); z-index: 1000; 
             transition: left 0.5s linear, top 0.5s linear;
             background-size: cover; background-position: center; background-color: #111;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; text-shadow: 1px 1px 2px black; font-weight: bold;
         }
         .enemy-dot { border-color: #ff4444; box-shadow: 0 0 8px #ff4444; }
         .ally-dot  { border-color: #44ff44; box-shadow: 0 0 8px #44ff44; }
@@ -35,28 +37,51 @@
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
     const CENTER_X = 1250, CENTER_Y = 870, ZOOM = 210;
 
+    // Путь до твоих картинок
+    const BASE_ICON_URL = "https://raw.githubusercontent.com/senselesed/dl-radar/main/icons/";
+
+    // 100% ТОЧНАЯ БАЗА ID -> КАРТИНКА (Работает даже на другом конце карты)
+    const idToIcon = {
+        1: "Infernus.png",
+        2: "Seven.png",
+        3: "Vindicta.png",
+        4: "Lady_Geist.png",
+        6: "Abrams.png",
+        7: "Wraith.png",
+        8: "McGinnis.png",
+        10: "Paradox.png",
+        11: "Dynamo.png",
+        12: "Kelvin.png",
+        13: "Haze.png",
+        14: "Holliday.png",
+        15: "Bebop.png",
+        16: "Calico.png",
+        17: "Grey_Talon.png",
+        18: "Mo_&_Krill.png",
+        19: "Shiv.png",
+        20: "Ivy.png",
+        25: "Warden.png",
+        27: "Yamato.png",
+        31: "Lash.png",
+        35: "Viscous.png",
+        50: "Pocket.png",
+        52: "Mirage.png",
+        58: "Vyper.png",
+        60: "Sinclair.png"
+    };
+
+    // Фолбэк-словарь: Если выйдет НОВЫЙ герой (ID которого мы не знаем), скрипт попытается найти его по пути модели как было с Абрамсом
     const heroIcons = {
-        "hero_abrams": "https://deadlock.wiki/images/e/e0/Abrams.png",
-        "hero_bebop": "https://deadlock.wiki/images/b/bd/Bebop.png",
-        "hero_dynamo": "https://deadlock.wiki/images/d/d2/Dynamo.png",
-        "hero_grey_talon": "https://deadlock.wiki/images/b/b3/Grey_Talon.png",
-        "hero_haze": "https://deadlock.wiki/images/8/85/Haze.png",
-        "hero_infernus": "https://deadlock.wiki/images/5/5a/Infernus.png",
-        "hero_ivy": "https://deadlock.wiki/images/e/e3/Ivy.png",
-        "hero_kelvin": "https://deadlock.wiki/images/6/67/Kelvin.png",
-        "hero_lady_geiger": "https://deadlock.wiki/images/2/22/Lady_Geiger.png",
-        "hero_lash": "https://deadlock.wiki/images/b/bb/Lash.png",
-        "hero_mcginnis": "https://deadlock.wiki/images/6/6c/McGinnis.png",
-        "hero_mo_and_krill": "https://deadlock.wiki/images/4/4b/Mo_%26_Krill.png",
-        "hero_paradox": "https://deadlock.wiki/images/0/07/Paradox.png",
-        "hero_pocket": "https://deadlock.wiki/images/9/91/Pocket.png",
-        "hero_seven": "https://deadlock.wiki/images/d/d4/Seven.png",
-        "hero_shiv": "https://deadlock.wiki/images/b/b9/Shiv.png",
-        "hero_vindicta": "https://deadlock.wiki/images/4/40/Vindicta.png",
-        "hero_viscous": "https://deadlock.wiki/images/d/d0/Viscous.png",
-        "hero_warden": "https://deadlock.wiki/images/d/d2/Warden.png",
-        "hero_wraith": "https://deadlock.wiki/images/0/07/Wraith.png",
-        "hero_yamato": "https://deadlock.wiki/images/1/1d/Yamato.png"
+        "abrams": "Abrams.png", "apollo": "Apollo.png", "bebop": "Bebop.png", "billy": "Billy.png", 
+        "calico": "Calico.png", "celeste": "Celeste.png", "drifter": "Drifter.png", "dynamo": "Dynamo.png", 
+        "graves": "Graves.png", "talon": "Grey_Talon.png", "haze": "Haze.png", "holliday": "Holliday.png", 
+        "infernus": "Infernus.png", "ivy": "Ivy.png", "kelvin": "Kelvin.png", "geist": "Lady_Geist.png", 
+        "lash": "Lash.png", "mcginnis": "McGinnis.png", "mina": "Mina.png", "mirage": "Mirage.png", 
+        "krill": "Mo_&_Krill.png", "paige": "Paige.png", "paradox": "Paradox.png", "pocket": "Pocket.png", 
+        "rem": "Rem.png", "seven": "Seven.png", "shiv": "Shiv.png", "silver": "Silver.png", 
+        "sinclair": "Sinclair.png", "doorman": "The_Doorman.png", "venator": "Venator.png", 
+        "victor": "Victor.png", "vindicta": "Vindicta.png", "viscous": "Viscous.png", "vyper": "Vyper.png", 
+        "warden": "Warden.png", "wraith": "Wraith.png", "yamato": "Yamato.png"
     };
 
     function calculatePos(gx, gy) {
@@ -68,7 +93,7 @@
 
     function updateLayer(layerId, data, className) {
         const container = document.getElementById(layerId);
-        const players = data ? (Array.isArray(data) ? data : [data]) : [];
+        const players = data ? (Array.isArray(data) ? data : [data]) :[];
         
         while (container.children.length < players.length) {
             const div = document.createElement("div");
@@ -84,8 +109,31 @@
             const pos = calculatePos(p.x, p.y);
             dot.style.left = pos.x + "px";
             dot.style.top = pos.y + "px";
-            if (p.hero && heroIcons[p.hero]) {
-                dot.style.backgroundImage = `url('${heroIcons[p.hero]}')`;
+            
+            // 1. Ищем иконку по непробиваемому числовому ID
+            let foundIcon = idToIcon[p.id];
+
+            // 2. Если ID новый и его нет в словаре выше, пытаемся вытащить имя героя из пути к модели
+            if (!foundIcon && p.model && typeof p.model === "string") {
+                const match = p.model.match(/heroes\/([^\/]+)/);
+                if (match) {
+                    let modelName = match[1].toLowerCase();
+                    for (let key in heroIcons) {
+                        if (modelName.includes(key)) {
+                            foundIcon = heroIcons[key];
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Устанавливаем иконку или текст
+            if (foundIcon) {
+                dot.style.backgroundImage = `url('${BASE_ICON_URL}${foundIcon}')`;
+                dot.innerText = "";
+            } else {
+                dot.style.backgroundImage = "none";
+                dot.innerText = p.id || "?"; // Если вообще ничего не сработало, покажет ID, чтобы мы могли его добавить
             }
         });
     }
@@ -96,12 +144,19 @@
             const data = await res.json();
             if (!data) return;
 
-            updateLayer("layer-enemies", data.enemies, "enemy-dot");
-            updateLayer("layer-allies", data.allies, "ally-dot");
-            updateLayer("layer-local", data.local, "local-dot");
+            updateLayer("layer-enemies", data.enemies ||[], "enemy-dot");
+            updateLayer("layer-allies", data.allies ||[], "ally-dot");
+            
+            if (data.local) {
+                updateLayer("layer-local", [data.local], "local-dot");
+            } else {
+                updateLayer("layer-local",[], "local-dot");
+            }
 
             document.getElementById("status").innerText = "Cloud Radar: Connected";
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e); 
+        }
     }
 
     setInterval(tick, 500);
