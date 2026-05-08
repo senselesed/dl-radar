@@ -2,73 +2,109 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Deadlock Cloud Radar [ALIGN-FIX]</title>
+    <title>Deadlock Cloud Radar [ICONS]</title>
     <style>
         body { background-color: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .radar-container { 
             position: relative; width: 600px; height: 600px; 
-            background-color: #1e1e1e; 
             background-image: url('https://deadlock.one/sites/default/files/inline-images/%D0%91%D0%B5%D0%B7%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8-2_2.png');
             background-size: 100% 100%; border: 2px solid #444; border-radius: 8px; overflow: hidden; 
         }
-        .enemy-dot { 
-            position: absolute; width: 14px; height: 14px; background-color: #ff0000; border: 2px solid white; 
-            border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 10px red; z-index: 9999; 
-            transition: left 0.2s ease, top 0.2s ease;
+        .dot {
+            position: absolute; width: 32px; height: 32px; 
+            border: 2px solid white; border-radius: 50%; 
+            transform: translate(-50%, -50%); z-index: 1000; 
+            transition: left 0.5s linear, top 0.5s linear;
+            background-size: cover; background-position: center; background-color: #111;
         }
-        .status { margin-top: 15px; color: #888; font-size: 13px; text-align: center; }
+        .enemy-dot { border-color: #ff4444; box-shadow: 0 0 8px #ff4444; }
+        .ally-dot  { border-color: #44ff44; box-shadow: 0 0 8px #44ff44; }
+        .local-dot { border-color: #ffff44; width: 40px; height: 40px; z-index: 1001; box-shadow: 0 0 12px #ffff44; }
+        .status { margin-top: 15px; color: #888; font-size: 13px; }
     </style>
 </head>
 <body>
-    <div class="radar-container" id="radar"></div>
-    <div class="status" id="status">Выравнивание...</div>
+    <div class="radar-container" id="radar">
+        <div id="layer-enemies"></div>
+        <div id="layer-allies"></div>
+        <div id="layer-local"></div>
+    </div>
+    <div class="status" id="status">Ожидание данных...</div>
+
 <script>
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
-    
-    // --- КОРРЕКТИРОВКА МЕТОК ---
-    const VERSION = "alpha v1"; 
-    const ZOOM = 210;        // Чуть увеличил зум для точности проходов
-    const CENTER_X = 1250;   // Сместил по горизонтали
-    const CENTER_Y = 870;    // Сместил по вертикали под метки
-    // ---------------------------
+    const CENTER_X = 1250, CENTER_Y = 870, ZOOM = 210;
 
-    async function fetchRadarData() {
+    const heroIcons = {
+        "hero_abrams": "https://deadlock.wiki/images/e/e0/Abrams.png",
+        "hero_bebop": "https://deadlock.wiki/images/b/bd/Bebop.png",
+        "hero_dynamo": "https://deadlock.wiki/images/d/d2/Dynamo.png",
+        "hero_grey_talon": "https://deadlock.wiki/images/b/b3/Grey_Talon.png",
+        "hero_haze": "https://deadlock.wiki/images/8/85/Haze.png",
+        "hero_infernus": "https://deadlock.wiki/images/5/5a/Infernus.png",
+        "hero_ivy": "https://deadlock.wiki/images/e/e3/Ivy.png",
+        "hero_kelvin": "https://deadlock.wiki/images/6/67/Kelvin.png",
+        "hero_lady_geiger": "https://deadlock.wiki/images/2/22/Lady_Geiger.png",
+        "hero_lash": "https://deadlock.wiki/images/b/bb/Lash.png",
+        "hero_mcginnis": "https://deadlock.wiki/images/6/6c/McGinnis.png",
+        "hero_mo_and_krill": "https://deadlock.wiki/images/4/4b/Mo_%26_Krill.png",
+        "hero_paradox": "https://deadlock.wiki/images/0/07/Paradox.png",
+        "hero_pocket": "https://deadlock.wiki/images/9/91/Pocket.png",
+        "hero_seven": "https://deadlock.wiki/images/d/d4/Seven.png",
+        "hero_shiv": "https://deadlock.wiki/images/b/b9/Shiv.png",
+        "hero_vindicta": "https://deadlock.wiki/images/4/40/Vindicta.png",
+        "hero_viscous": "https://deadlock.wiki/images/d/d0/Viscous.png",
+        "hero_warden": "https://deadlock.wiki/images/d/d2/Warden.png",
+        "hero_wraith": "https://deadlock.wiki/images/0/07/Wraith.png",
+        "hero_yamato": "https://deadlock.wiki/images/1/1d/Yamato.png"
+    };
+
+    function calculatePos(gx, gy) {
+        return {
+            x: 325 + (gx - CENTER_X) / (ZOOM / 300),
+            y: 320 + (gy - CENTER_Y) / (ZOOM / 300)
+        };
+    }
+
+    function updateLayer(layerId, data, className) {
+        const container = document.getElementById(layerId);
+        const players = data ? (Array.isArray(data) ? data : [data]) : [];
+        
+        while (container.children.length < players.length) {
+            const div = document.createElement("div");
+            div.className = "dot " + className;
+            container.appendChild(div);
+        }
+        while (container.children.length > players.length) {
+            container.lastChild.remove();
+        }
+
+        players.forEach((p, i) => {
+            const dot = container.children[i];
+            const pos = calculatePos(p.x, p.y);
+            dot.style.left = pos.x + "px";
+            dot.style.top = pos.y + "px";
+            if (p.hero && heroIcons[p.hero]) {
+                dot.style.backgroundImage = `url('${heroIcons[p.hero]}')`;
+            }
+        });
+    }
+
+    async function tick() {
         try {
-            const response = await fetch(dbUrl + "?t=" + Date.now());
-            const data = await response.json();
-            const radar = document.getElementById("radar");
-            const statusText = document.getElementById("status");
-            
-            radar.innerHTML = ""; 
+            const res = await fetch(dbUrl + "?t=" + Date.now());
+            const data = await res.json();
             if (!data) return;
 
-            const enemiesArray = Array.isArray(data) ? data : Object.values(data);
-            
-            enemiesArray.forEach(enemy => {
-                if (enemy && typeof enemy.x === 'number') {
-                    const dot = document.createElement("div");
-                    dot.className = "enemy-dot";
-                    
-                    // Расчет с учетом смещения
-                    let x_offset_px = (enemy.x - CENTER_X) / (ZOOM / 300);
-                    let y_offset_px = (enemy.y - CENTER_Y) / (ZOOM / 300);
+            updateLayer("layer-enemies", data.enemies, "enemy-dot");
+            updateLayer("layer-allies", data.allies, "ally-dot");
+            updateLayer("layer-local", data.local, "local-dot");
 
-                    // Центр 300px + смещение
-                    let final_x = 325 + x_offset_px;
-                    let final_y = 320 + y_offset_px; // Оставляем инверсию Y
-
-                    dot.style.left = final_x + "px";
-                    dot.style.top = final_y + "px";
-                    radar.appendChild(dot);
-                }
-            });
-            if (enemiesArray[0]) {
-                statusText.innerHTML = `larpsense cloud: ${VERSION}`;
-            }
-        } catch (err) { console.error(err); }
+            document.getElementById("status").innerText = "Cloud Radar: Connected";
+        } catch(e) { console.error(e); }
     }
-    setInterval(fetchRadarData, 500);
-    fetchRadarData();
+
+    setInterval(tick, 500);
 </script>
 </body>
 </html>
