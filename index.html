@@ -1,60 +1,99 @@
-<script>
-    // ТВОЯ ССЫЛКА (Проверь, что в конце есть .json)
-    const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
-    const radar = document.getElementById("radar");
-    const statusText = document.getElementById("status");
-
-    const MAP_BOUNDS = 16000; 
-
-    async function fetchRadarData() {
-        try {
-            // Добавляем случайный параметр, чтобы избежать кэширования старой ошибки
-            const response = await fetch(dbUrl + "?t=" + Date.now());
-            
-            if (!response.ok) {
-                statusText.innerText = "Ошибка сервера: " + response.status;
-                return;
-            }
-
-            const data = await response.json();
-            radar.innerHTML = ""; 
-            
-            if (data === null) {
-                statusText.innerText = "В базе пусто (null). Скрипт в игре не шлет данные.";
-                return;
-            }
-
-            // Firebase может вернуть или массив [], или объект {}
-            const enemiesArray = Array.isArray(data) ? data : Object.values(data);
-            
-            let count = 0;
-            enemiesArray.forEach(enemy => {
-                // Проверяем, что в объекте есть координаты
-                if (enemy && typeof enemy.x === 'number') {
-                    const dot = document.createElement("div");
-                    dot.className = "enemy-dot";
-
-                    // Расчет позиции
-                    let posX = ((enemy.x + MAP_BOUNDS) / (MAP_BOUNDS * 2)) * 100;
-                    let posY = ((MAP_BOUNDS - enemy.y) / (MAP_BOUNDS * 2)) * 100;
-
-                    dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
-                    dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
-                    
-                    radar.appendChild(dot);
-                    count++;
-                }
-            });
-            
-            statusText.innerText = "Врагов: " + count + " | Обновлено: " + new Date().toLocaleTimeString();
-
-        } catch (err) {
-            console.error("Full error info:", err);
-            statusText.innerText = "Критическая ошибка: " + err.message;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Deadlock Cloud Radar</title>
+    <style>
+        /* ВОТ ЭТО И ЕСТЬ CSS */
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
         }
-    }
 
-    // Запуск цикла
-    setInterval(fetchRadarData, 1000);
-    fetchRadarData();
-</script>
+        .radar-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background-color: #1e1e1e;
+            border: 2px solid #444;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            overflow: hidden; /* Чтобы точки не вылетали за границы */
+        }
+
+        .enemy-dot {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #ff0000; /* Ярко-красный */
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px red;
+            z-index: 9999; /* Поверх всего */
+        }
+
+        .status {
+            margin-top: 15px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Cloud Radar</h2>
+    <div class="radar-container" id="radar">
+        </div>
+    <div class="status" id="status">Загрузка...</div>
+
+    <script>
+        // Сюда вставляешь тот JavaScript с fetch, который мы обсуждали выше
+        // Не забудь заменить ссылку на свою!
+        const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
+        const radar = document.getElementById("radar");
+        const statusText = document.getElementById("status");
+        const MAP_BOUNDS = 20000; 
+
+        async function fetchRadarData() {
+            try {
+                const response = await fetch(dbUrl + "?t=" + Date.now());
+                const data = await response.json();
+                radar.innerHTML = ""; 
+                
+                if (!data) {
+                    statusText.innerText = "База пуста";
+                    return;
+                }
+
+                const enemiesArray = Array.isArray(data) ? data : Object.values(data);
+                
+                enemiesArray.forEach(enemy => {
+                    if (enemy && typeof enemy.x === 'number') {
+                        const dot = document.createElement("div");
+                        dot.className = "enemy-dot";
+
+                        let posX = ((enemy.x + MAP_BOUNDS) / (MAP_BOUNDS * 2)) * 100;
+                        let posY = ((MAP_BOUNDS - enemy.y) / (MAP_BOUNDS * 2)) * 100;
+
+                        dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
+                        dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
+                        
+                        radar.appendChild(dot);
+                    }
+                });
+                statusText.innerText = "Врагов на радаре: " + enemiesArray.length;
+            } catch (err) {
+                statusText.innerText = "Ошибка: " + err.message;
+            }
+        }
+        setInterval(fetchRadarData, 500);
+    </script>
+</body>
+</html>
