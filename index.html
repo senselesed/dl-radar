@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Deadlock Cloud Radar [SMOOTH]</title>
+    <title>Deadlock Cloud Radar [NO DELAY]</title>
     <style>
         body { background-color: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .radar-container { 
@@ -14,8 +14,7 @@
             position: absolute; width: 32px; height: 32px; 
             border: 2px solid white; border-radius: 50%; 
             transform: translate(-50%, -50%); z-index: 1000; 
-            /* Добавлена супер плавная анимация движения 0.15 секунд */
-            transition: left 0.15s linear, top 0.15s linear;
+            transition: left 0.2s linear, top 0.2s linear; /* Плавность совпадает с Lua */
             background-size: cover; background-position: center; background-color: #111;
             display: flex; align-items: center; justify-content: center;
             font-size: 14px; text-shadow: 1px 1px 2px black; font-weight: bold;
@@ -32,12 +31,11 @@
         <div id="layer-allies"></div>
         <div id="layer-local"></div>
     </div>
-    <div class="status" id="status">Ожидание данных...</div>
+    <div class="status" id="status">Радар работает...</div>
 
 <script>
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
     const CENTER_X = 1250, CENTER_Y = 870, ZOOM = 210;
-
     const BASE_ICON_URL = "https://raw.githubusercontent.com/senselesed/dl-radar/main/icons/";
 
     const idToIcon = {
@@ -91,7 +89,6 @@
             
             let foundIcon = idToIcon[p.id];
 
-            // Если по ID не нашли (новые герои), ищем по vdata или model
             if (!foundIcon) {
                 const searchStr = ((p.model || "") + " " + (p.vdata || "")).toLowerCase();
                 for (let key in heroIcons) {
