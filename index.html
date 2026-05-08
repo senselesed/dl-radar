@@ -84,8 +84,8 @@
                     dot.className = "enemy-dot";
 
                     // Новая формула с ZOOM и OFFSET
-                    let posX = ((enemy.x + OFFSET_X + ZOOM) / (ZOOM * 2)) * 100;
-                    let posY = ((ZOOM - (enemy.y + OFFSET_Y)) / (ZOOM * 2)) * 100;
+                    let posX = ((enemy.x + OFFSET_X + ZOOM) / (ZOOM * 2)) * 1;
+                    let posY = ((ZOOM - (enemy.y + OFFSET_Y)) / (ZOOM * 2)) * 1;
 
                     // Ограничение, чтобы не вылезали за рамку
                     dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
