@@ -4,49 +4,82 @@
     <meta charset="UTF-8">
     <title>Deadlock Cloud Radar</title>
     <style>
-        body { background-color: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        body { 
+            background-color: #121212; 
+            color: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: sans-serif; 
+        }
+
         .radar-container { 
             position: relative; 
             width: 600px; 
             height: 600px; 
             background-color: #1e1e1e; 
+            
+            /* ФОНОВАЯ КАРТА */
+            background-image: url('https://deadlock.one/sites/default/files/inline-images/%D0%91%D0%B5%D0%B7%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B8-2_2.png');
+            background-size: 100% 100%; /* Растягиваем точно по размеру контейнера */
+            background-position: center;
+            background-repeat: no-repeat;
+
             border: 2px solid #444; 
             border-radius: 8px; 
             overflow: hidden; 
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
         }
-        /* Центральное перекрестие для калибровки */
-        .radar-container::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255,255,255,0.1); }
-        .radar-container::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: rgba(255,255,255,0.1); }
+
+        /* Центральное перекрестие (сделал чуть тусклее, чтобы не мешало карте) */
+        .radar-container::before { content: ''; position: absolute; top: 50%; left: 0; width: 100%; height: 1px; background: rgba(255,255,255,0.05); z-index: 1; }
+        .radar-container::after { content: ''; position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: rgba(255,255,255,0.05); z-index: 1; }
         
         .enemy-dot { 
             position: absolute; 
-            width: 12px; 
-            height: 12px; 
+            width: 14px; 
+            height: 14px; 
             background-color: #ff0000; 
             border: 2px solid white; 
             border-radius: 50%; 
-            transform: translate(-50%, -50%); /* Центрирует саму точку */
+            transform: translate(-50%, -50%); 
             box-shadow: 0 0 10px red; 
             z-index: 9999; 
+            transition: left 0.2s ease, top 0.2s ease; /* Плавное движение точек */
         }
-        .status { margin-top: 15px; color: #888; font-size: 14px; background: #1e1e1e; padding: 10px; border-radius: 5px; text-align: center; }
+
+        .status { 
+            margin-top: 15px; 
+            color: #888; 
+            font-size: 13px; 
+            background: rgba(30, 30, 30, 0.8); 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            text-align: center; 
+            border: 1px solid #333;
+        }
     </style>
 </head>
 <body>
 
-    <h2>Cloud Radar</h2>
+    <h2 style="margin-bottom: 10px; letter-spacing: 2px;">DEADLOCK RADAR</h2>
+    
     <div class="radar-container" id="radar"></div>
-    <div class="status" id="status">Загрузка...</div>
+    
+    <div class="status" id="status">Загрузка данных...</div>
 
 <script>
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
     
-    // --- НАСТРОЙКИ ---
-    const VERSION = "FIX_13"; // Меняй при каждом сохранении!
-    const ZOOM = 200;       // Попробуй поставить 800, если не разлетаются
+    // --- ТВОИ ОТКАЛИБРОВАННЫЕ НАСТРОЙКИ ---
+    const VERSION = "MAP_FINAL_1"; 
+    const ZOOM = 200;       
     const CENTER_X = 1230;   
     const CENTER_Y = 855;
-    // -----------------
+    // --------------------------------------
 
     async function fetchRadarData() {
         try {
@@ -56,7 +89,10 @@
             const statusText = document.getElementById("status");
             
             radar.innerHTML = ""; 
-            if (!data) return;
+            if (!data) {
+                statusText.innerText = "База пуста";
+                return;
+            }
 
             const enemiesArray = Array.isArray(data) ? data : Object.values(data);
             
@@ -65,13 +101,12 @@
                     const dot = document.createElement("div");
                     dot.className = "enemy-dot";
                     
-                    // НОВАЯ ПРЯМАЯ МАТЕМАТИКА
-                    // Вычисляем отклонение от центра в пикселях (300 - это половина 600px радара)
+                    // Расчет позиции в пикселях (300 - центр 600-пиксельного радара)
                     let x_offset_px = (enemy.x - CENTER_X) / (ZOOM / 300);
                     let y_offset_px = (enemy.y - CENTER_Y) / (ZOOM / 300);
 
                     let final_x = 300 + x_offset_px;
-                    let final_y = 300 - y_offset_px; // Инверсия Y для корректного отображения
+                    let final_y = 300 - y_offset_px;
 
                     dot.style.left = final_x + "px";
                     dot.style.top = final_y + "px";
@@ -82,13 +117,17 @@
             
             if (enemiesArray[0]) {
                 statusText.innerHTML = `
-                    <b>Версия:</b> ${VERSION} | <b>Zoom:</b> ${ZOOM} <br>
-                    <b>Координаты первого врага в базе:</b> X: ${Math.round(enemiesArray[0].x)} Y: ${Math.round(enemiesArray[0].y)}
+                    <b>Версия:</b> ${VERSION} | <b>Врагов:</b> ${enemiesArray.length} <br>
+                    <b>Координаты:</b> X: ${Math.round(enemiesArray[0].x)} Y: ${Math.round(enemiesArray[0].y)}
                 `;
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { 
+            console.error(err);
+            document.getElementById("status").innerText = "Ошибка связи с Firebase";
+        }
     }
 
+    // Обновляем раз в 500мс
     setInterval(fetchRadarData, 500);
     fetchRadarData();
 </script>
