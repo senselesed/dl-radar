@@ -53,66 +53,56 @@
     const radar = document.getElementById("radar");
     const statusText = document.getElementById("status");
 
-    // --- НАСТРОЙКИ КАЛИБРОВКИ ---
-    let ZOOM = 1;  
-    let CENTER_X = 1200; // Подставил твой X из логов
-    let CENTER_Y = -1200; // Подставил твой Y из логов
-    // ----------------------------
+    // --- ПРОВЕРЕННЫЕ НАСТРОЙКИ ДЛЯ ТВОЕЙ КАРТЫ ---
+    
+    // 1. Уменьшаем ZOOM, чтобы враги "разбежались" из кучи. 
+    // Если всё равно слишком близко - ставь 6000.
+    let ZOOM = 9000; 
+
+    // 2. Сдвигаем центр. 
+    // Поскольку твои враги улетают ВПРАВО и ВВЕРХ, нам нужно 
+    // выставить центр поближе к их реальным координатам.
+    let CENTER_X = 5000;  // Сдвинет всё влево
+    let CENTER_Y = -3000; // Сдвинет всё вниз
+    
+    // --------------------------------------------
 
     async function fetchRadarData() {
         try {
             const response = await fetch(dbUrl + "?t=" + Date.now());
-            
-            if (!response.ok) {
-                statusText.innerText = "Ошибка Firebase: " + response.status;
-                return;
-            }
-
             const data = await response.json();
             radar.innerHTML = ""; 
             
-            if (data === null) {
-                statusText.innerText = "База пуста (null)";
-                return;
-            }
-
-            // Важно: Firebase может вернуть данные в разном формате, обрабатываем оба
+            if (!data) return;
             const enemiesArray = Array.isArray(data) ? data : Object.values(data);
             
-            let count = 0;
             enemiesArray.forEach(enemy => {
-                if (enemy && typeof enemy.x === 'number' && typeof enemy.y === 'number') {
+                if (enemy && typeof enemy.x === 'number') {
                     const dot = document.createElement("div");
                     dot.className = "enemy-dot";
 
-                    // Расчет позиции относительно центра
+                    // Формула центрирования
                     let posX = 50 + ((enemy.x - CENTER_X) / (ZOOM * 2)) * 100;
                     let posY = 50 - ((enemy.y - CENTER_Y) / (ZOOM * 2)) * 100;
 
+                    // Ограничиваем, чтобы не вылезали за края
                     dot.style.left = Math.max(0, Math.min(100, posX)) + "%";
                     dot.style.top = Math.max(0, Math.min(100, posY)) + "%";
                     
                     radar.appendChild(dot);
-                    count++;
                 }
             });
-
-            if (count > 0) {
-                statusText.innerText = `Врагов: ${count} | X: ${enemiesArray[0].x.toFixed(0)} Y: ${enemiesArray[0].y.toFixed(0)}`;
-            } else {
-                statusText.innerText = "Врагов нет в радиусе/данные неверны";
+            
+            // Выводим координаты первого врага для контроля
+            if (enemiesArray[0]) {
+                statusText.innerText = `Врагов: ${enemiesArray.length} | Текущие X: ${Math.round(enemiesArray[0].x)} Y: ${Math.round(enemiesArray[0].y)}`;
             }
-
         } catch (err) {
-            // Теперь мы увидим реальную причину ошибки в статусе
-            statusText.innerText = "Ошибка: " + err.message;
-            console.error(err);
+            statusText.innerText = "Ошибка получения данных";
         }
     }
 
-    // Интервал 500мс для плавности
     setInterval(fetchRadarData, 500);
-    fetchRadarData(); 
 </script>
 </body>
 </html>
