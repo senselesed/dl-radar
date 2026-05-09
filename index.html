@@ -2,78 +2,82 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Deadlock Cloud Radar</title>
+    <title>larpsense cloud radar</title>
     <style>
-        body { 
-            background-color: #000; 
-            color: #fff; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            margin: 0; 
-            font-family: 'Verdana', sans-serif; 
-        }
-
-        /* ВОТЕРМАРКА ВНИЗУ ПО ЦЕНТРУ */
-        .wm-container {
-            position: absolute;
-            bottom: 20px; /* Отступ снизу */
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgb(17, 17, 17);
-            border: 1px solid rgb(45, 45, 45);
-            padding: 5px 15px;
-            display: flex;
-            align-items: center;
-            box-shadow: 0 -4px 15px rgba(0,0,0,0.5); /* Тень теперь направлена вверх */
-            z-index: 10000;
-            border-radius: 2px;
-        }
-
-        .wm-text {
-            font-size: 12px;
-            color: #ffffff;
-            white-space: nowrap;
-        }
-
-        .divider { color: #444; margin: 0 6px; }
+        :root { --wm-scale: 1; }
         
+        body { 
+            background-color: #000; color: #fff; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; height: 100vh; margin: 0; 
+            font-family: 'Verdana', sans-serif; overflow: hidden;
+        }
+
+        .settings-btn {
+            position: absolute; top: 20px; right: 20px;
+            background: rgb(17,17,17); border: 1px solid rgb(45,45,45);
+            color: #fff; padding: 8px 12px; cursor: pointer; z-index: 10001;
+            font-size: 16px; border-radius: 4px; transition: 0.2s; box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .settings-btn:hover { background: rgb(30,30,30); }
+        
+        .settings-panel {
+            position: absolute; top: 65px; right: 20px;
+            background: rgb(17,17,17); border: 1px solid rgb(45,45,45);
+            padding: 15px; border-radius: 4px; display: none;
+            flex-direction: column; gap: 12px; z-index: 10001;
+            font-size: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+        }
+        .settings-panel.active { display: flex; }
+        .settings-panel label { display: flex; align-items: center; justify-content: space-between; gap: 20px; cursor: pointer; }
+        .settings-panel input[type="range"] { width: 100px; cursor: pointer; }
+
+        .wm-container {
+            position: absolute; bottom: 20px; left: 50%; 
+            transform-origin: bottom center;
+            transform: translateX(-50%) scale(var(--wm-scale));
+            background-color: rgb(17, 17, 17); border: 1px solid rgb(45, 45, 45);
+            padding: 5px 15px; display: flex; align-items: center;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.5); z-index: 10000; border-radius: 2px;
+            transition: opacity 0.3s;
+        }
+        .wm-text { font-size: 12px; color: #ffffff; white-space: nowrap; }
+        .divider { color: #444; margin: 0 6px; }
         .stat-online { color: #44ff44; font-weight: bold; }
         .stat-offline { color: #ff4444; font-weight: bold; }
 
-        /* РАДАР */
         .radar-container { 
-            position: relative; 
-            width: 600px; 
-            height: 600px; 
+            position: relative; width: 65vh; height: 65vh; 
+            max-width: 800px; max-height: 800px; min-width: 400px; min-height: 400px;
             background-image: url('https://raw.githubusercontent.com/senselesed/dl-radar/main/map.png');
-            background-size: 100% 100%; 
-            border-radius: 50%; 
-            overflow: hidden;
+            background-size: 100% 100%; border-radius: 50%; overflow: hidden;
             transition: opacity 0.5s;
         }
         .offline-mode { opacity: 0.4; filter: grayscale(0.8); }
 
         .hero-dot {
-            position: absolute; width: 32px; height: 32px; 
-            border: 2px solid white; border-radius: 50%; 
+            position: absolute; border: 2px solid white; border-radius: 50%; 
             transform: translate(-50%, -50%); z-index: 1000; 
-            transition: left 0.2s linear, top 0.2s linear;
+            transition: left 0.2s linear, top 0.2s linear, width 0.2s, height 0.2s;
             background-size: cover; background-color: #111;
         }
         .enemy-dot { border-color: #ff4444; box-shadow: 0 0 8px #ff4444; }
         .ally-dot  { border-color: #44ff44; box-shadow: 0 0 8px #44ff44; }
-        .local-dot { border-color: #ffffff; width: 38px; height: 38px; z-index: 1001; }
+        .local-dot { border-color: #ffffff; z-index: 1001; border-width: 3px; }
     </style>
 </head>
 <body>
 
-    <div class="wm-container">
-        <div class="wm-text" id="wm-content">
-            larpsense <span class="divider">|</span> <span class="stat-offline" id="status-val">OFFLINE</span> <span class="divider">|</span> PING: 0ms <span class="divider">|</span> DATA AGE: 0.0s
-        </div>
+    <div class="settings-btn" onclick="document.getElementById('settings').classList.toggle('active')">⚙️</div>
+    <div class="settings-panel" id="settings">
+        <label>icon size: <input type="range" id="cfg-size" min="16" max="64" value="32"></label>
+        <label>watermark size: <input type="range" id="cfg-wm-scale" min="50" max="200" value="100"></label>
+        <label>show watermark <input type="checkbox" id="cfg-wm" checked></label>
+        <label>show ping <input type="checkbox" id="cfg-ping" checked></label>
+        <label>show data age <input type="checkbox" id="cfg-age" checked></label>
+    </div>
+
+    <div class="wm-container" id="wm-bar">
+        <div class="wm-text" id="wm-content">larpsense <span class="divider">|</span> <span class="stat-offline">OFFLINE</span></div>
     </div>
 
     <div class="radar-container" id="radar">
@@ -84,30 +88,65 @@
 
 <script>
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
-    const CENTER_X = 1250, CENTER_Y = 870, ZOOM = 210;
+    const CENTER_X = 1230, CENTER_Y = 855, ZOOM = 195;
     const BASE_ICON_URL = "https://raw.githubusercontent.com/senselesed/dl-radar/main/icons/";
 
     const idToIcon = { 1: "Infernus.png", 2: "Seven.png", 3: "Vindicta.png", 4: "Lady_Geist.png", 6: "Abrams.png", 7: "Wraith.png", 8: "McGinnis.png", 10: "Paradox.png", 11: "Dynamo.png", 12: "Kelvin.png", 13: "Haze.png", 14: "Holliday.png", 15: "Bebop.png", 16: "Calico.png", 17: "Grey_Talon.png", 18: "Mo_&_Krill.png", 19: "Shiv.png", 20: "Ivy.png", 25: "Warden.png", 27: "Yamato.png", 31: "Lash.png", 35: "Viscous.png", 50: "Pocket.png", 52: "Mirage.png", 58: "Vyper.png", 60: "Sinclair.png", 63: "Mina.png", 64: "Drifter.png", 65: "Venator.png", 66: "Victor.png", 67: "Paige.png", 69: "The_Doorman.png", 72: "Billy.png", 76: "Graves.png", 77: "Apollo.png", 79: "Rem.png", 80: "Silver.png", 81: "Celeste.png" };
 
+    const cfg = { size: 32, showWm: true, showPing: true, showAge: true };
+
+    document.getElementById('cfg-size').addEventListener('input', (e) => { cfg.size = e.target.value; updateIconSizes(); });
+    document.getElementById('cfg-wm-scale').addEventListener('input', (e) => { document.documentElement.style.setProperty('--wm-scale', e.target.value / 100); });
+    document.getElementById('cfg-wm').addEventListener('change', (e) => { cfg.showWm = e.target.checked; document.getElementById('wm-bar').style.display = cfg.showWm ? 'flex' : 'none'; });
+    document.getElementById('cfg-ping').addEventListener('change', (e) => { cfg.showPing = e.target.checked; });
+    document.getElementById('cfg-age').addEventListener('change', (e) => { cfg.showAge = e.target.checked; });
+
+    function calculatePos(gx, gy) {
+        const px = 300 + (gx - CENTER_X) / (ZOOM / 300);
+        const py = 300 + (gy - CENTER_Y) / (ZOOM / 300);
+        return { x: (px / 600) * 100, y: (py / 600) * 100 };
+    }
+
+    function updateIconSizes() {
+        document.querySelectorAll('.hero-dot').forEach(dot => {
+            let s = Number(cfg.size);
+            if (dot.classList.contains('local-dot')) s += 6;
+            dot.style.width = s + 'px';
+            dot.style.height = s + 'px';
+        });
+    }
+
     function updateLayer(layerId, data, className, isOnline) {
         const container = document.getElementById(layerId);
         const players = (isOnline && data) ? (Array.isArray(data) ? data : [data]) : [];
+        
         while (container.children.length < players.length) {
             const div = document.createElement("div");
             div.className = "hero-dot " + className;
             container.appendChild(div);
         }
         while (container.children.length > players.length) container.lastChild.remove();
+        
         players.forEach((p, i) => {
             const dot = container.children[i];
-            dot.style.left = (300 + (p.x - CENTER_X) / (ZOOM / 300)) + "px";
-            dot.style.top = (300 + (p.y - CENTER_Y) / (ZOOM / 300)) + "px";
+            const pos = calculatePos(p.x, p.y);
+            
+            dot.style.left = pos.x + "%";
+            dot.style.top = pos.y + "%";
+            
+            let s = Number(cfg.size);
+            if (className === 'local-dot') s += 6;
+            dot.style.width = s + "px";
+            dot.style.height = s + "px";
+
             if (p.id && idToIcon[p.id]) dot.style.backgroundImage = `url('${BASE_ICON_URL}${idToIcon[p.id]}')`;
         });
     }
 
     async function tick() {
         const start = Date.now();
+        let isOnline = false;
+
         try {
             const res = await fetch(dbUrl + "?t=" + start);
             const data = await res.json();
@@ -115,12 +154,17 @@
             
             if (data && data.sent_at) {
                 const diff = (Math.floor(Date.now() / 1000) - data.sent_at).toFixed(1);
-                const isOnline = diff < 7;
+                isOnline = diff < 7;
                 
                 const statusHtml = isOnline ? `<span class="stat-online">ONLINE</span>` : `<span class="stat-offline">OFFLINE</span>`;
+                let wmText = `larpsense <span class="divider">|</span> ${statusHtml}`;
                 
-                document.getElementById("wm-content").innerHTML = 
-                    `larpsense <span class="divider">|</span> ${statusHtml} <span class="divider">|</span> PING: ${ping}ms <span class="divider">|</span> DATA AGE: ${diff}s`;
+                if (isOnline) {
+                    if (cfg.showPing) wmText += ` <span class="divider">|</span> PING: ${ping}ms`;
+                    if (cfg.showAge) wmText += ` <span class="divider">|</span> DATA AGE: ${diff}s`;
+                }
+                
+                document.getElementById("wm-content").innerHTML = wmText;
 
                 const radar = document.getElementById("radar");
                 if (isOnline) radar.classList.remove("offline-mode"); else radar.classList.add("offline-mode");
@@ -129,10 +173,12 @@
                 updateLayer("layer-allies", data.allies, "ally-dot", isOnline);
                 updateLayer("layer-local", data.local, "local-dot", isOnline);
             }
-        } catch(e) { }
+        } catch(e) {}
+
+        setTimeout(tick, isOnline ? 500 : 10000);
     }
 
-    setInterval(tick, 500);
+    tick();
 </script>
 </body>
 </html>
