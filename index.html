@@ -2,137 +2,134 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Deadlock Cloud Radar[FINAL]</title>
+    <title>Deadlock Cloud Radar</title>
     <style>
-        body { background-color: #121212; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
-        .radar-container { 
-            position: relative; width: 600px; height: 600px; 
-            /* Ссылка на твою новую карту в GitHub */
-            background-image: url('https://raw.githubusercontent.com/senselesed/dl-radar/main/map.png');
-            background-size: 100% 100%; border: 2px solid #444; border-radius: 8px; overflow: hidden; 
+        body { 
+            background-color: #000; 
+            color: #fff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: 'Verdana', sans-serif; 
         }
-        .dot {
+
+        /* ВОТЕРМАРКА ВНИЗУ ПО ЦЕНТРУ */
+        .wm-container {
+            position: absolute;
+            bottom: 20px; /* Отступ снизу */
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgb(17, 17, 17);
+            border: 1px solid rgb(45, 45, 45);
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.5); /* Тень теперь направлена вверх */
+            z-index: 10000;
+            border-radius: 2px;
+        }
+
+        .wm-text {
+            font-size: 12px;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+
+        .divider { color: #444; margin: 0 6px; }
+        
+        .stat-online { color: #44ff44; font-weight: bold; }
+        .stat-offline { color: #ff4444; font-weight: bold; }
+
+        /* РАДАР */
+        .radar-container { 
+            position: relative; 
+            width: 600px; 
+            height: 600px; 
+            background-image: url('https://raw.githubusercontent.com/senselesed/dl-radar/main/map.png');
+            background-size: 100% 100%; 
+            border-radius: 50%; 
+            overflow: hidden;
+            transition: opacity 0.5s;
+        }
+        .offline-mode { opacity: 0.4; filter: grayscale(0.8); }
+
+        .hero-dot {
             position: absolute; width: 32px; height: 32px; 
             border: 2px solid white; border-radius: 50%; 
             transform: translate(-50%, -50%); z-index: 1000; 
-            transition: left 0.1s linear, top 0.1s linear; /* Плавность 0.2с под стать скрипту */
-            background-size: cover; background-position: center; background-color: #111;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; text-shadow: 1px 1px 2px black; font-weight: bold;
+            transition: left 0.2s linear, top 0.2s linear;
+            background-size: cover; background-color: #111;
         }
         .enemy-dot { border-color: #ff4444; box-shadow: 0 0 8px #ff4444; }
         .ally-dot  { border-color: #44ff44; box-shadow: 0 0 8px #44ff44; }
-        .local-dot { border-color: #f4d3ff; width: 40px; height: 40px; z-index: 1001; box-shadow: 0 0 12px #ffff44; }
-        .status { margin-top: 15px; color: #888; font-size: 13px; }
+        .local-dot { border-color: #ffffff; width: 38px; height: 38px; z-index: 1001; }
     </style>
 </head>
 <body>
+
+    <div class="wm-container">
+        <div class="wm-text" id="wm-content">
+            larpsense <span class="divider">|</span> <span class="stat-offline" id="status-val">OFFLINE</span> <span class="divider">|</span> PING: 0ms <span class="divider">|</span> DATA AGE: 0.0s
+        </div>
+    </div>
+
     <div class="radar-container" id="radar">
         <div id="layer-enemies"></div>
         <div id="layer-allies"></div>
         <div id="layer-local"></div>
     </div>
-    <div class="status" id="status">Радар работает...</div>
 
 <script>
     const dbUrl = "https://dl-cloud-radar-default-rtdb.europe-west1.firebasedatabase.app/radar.json";
     const CENTER_X = 1250, CENTER_Y = 870, ZOOM = 210;
     const BASE_ICON_URL = "https://raw.githubusercontent.com/senselesed/dl-radar/main/icons/";
 
-    // Полная база всех существующих героев с новыми ID
-    const idToIcon = {
-        1: "Infernus.png", 2: "Seven.png", 3: "Vindicta.png", 4: "Lady_Geist.png",
-        6: "Abrams.png", 7: "Wraith.png", 8: "McGinnis.png", 10: "Paradox.png",
-        11: "Dynamo.png", 12: "Kelvin.png", 13: "Haze.png", 14: "Holliday.png",
-        15: "Bebop.png", 16: "Calico.png", 17: "Grey_Talon.png", 18: "Mo_&_Krill.png",
-        19: "Shiv.png", 20: "Ivy.png", 25: "Warden.png", 27: "Yamato.png",
-        31: "Lash.png", 35: "Viscous.png", 50: "Pocket.png", 52: "Mirage.png",
-        58: "Vyper.png", 60: "Sinclair.png", 63: "Mina.png", 64: "Drifter.png", 
-        65: "Venator.png", 66: "Victor.png", 67: "Paige.png", 69: "The_Doorman.png",
-        72: "Billy.png", 76: "Graves.png", 77: "Apollo.png", 79: "Rem.png", 
-        80: "Silver.png", 81: "Celeste.png"
-    };
+    const idToIcon = { 1: "Infernus.png", 2: "Seven.png", 3: "Vindicta.png", 4: "Lady_Geist.png", 6: "Abrams.png", 7: "Wraith.png", 8: "McGinnis.png", 10: "Paradox.png", 11: "Dynamo.png", 12: "Kelvin.png", 13: "Haze.png", 14: "Holliday.png", 15: "Bebop.png", 16: "Calico.png", 17: "Grey_Talon.png", 18: "Mo_&_Krill.png", 19: "Shiv.png", 20: "Ivy.png", 25: "Warden.png", 27: "Yamato.png", 31: "Lash.png", 35: "Viscous.png", 50: "Pocket.png", 52: "Mirage.png", 58: "Vyper.png", 60: "Sinclair.png", 63: "Mina.png", 64: "Drifter.png", 65: "Venator.png", 66: "Victor.png", 67: "Paige.png", 69: "The_Doorman.png", 72: "Billy.png", 76: "Graves.png", 77: "Apollo.png", 79: "Rem.png", 80: "Silver.png", 81: "Celeste.png" };
 
-    const heroIcons = {
-        "abrams": "Abrams.png", "apollo": "Apollo.png", "bebop": "Bebop.png", "billy": "Billy.png", 
-        "calico": "Calico.png", "celeste": "Celeste.png", "drifter": "Drifter.png", "dynamo": "Dynamo.png", 
-        "graves": "Graves.png", "talon": "Grey_Talon.png", "haze": "Haze.png", "holliday": "Holliday.png", 
-        "infernus": "Infernus.png", "ivy": "Ivy.png", "kelvin": "Kelvin.png", "geist": "Lady_Geist.png", 
-        "lash": "Lash.png", "mcginnis": "McGinnis.png", "mina": "Mina.png", "mirage": "Mirage.png", 
-        "krill": "Mo_&_Krill.png", "paige": "Paige.png", "paradox": "Paradox.png", "pocket": "Pocket.png", 
-        "rem": "Rem.png", "seven": "Seven.png", "shiv": "Shiv.png", "silver": "Silver.png", 
-        "sinclair": "Sinclair.png", "doorman": "The_Doorman.png", "venator": "Venator.png", 
-        "victor": "Victor.png", "vindicta": "Vindicta.png", "viscous": "Viscous.png", "vyper": "Vyper.png", 
-        "warden": "Warden.png", "wraith": "Wraith.png", "yamato": "Yamato.png"
-    };
-
-    function calculatePos(gx, gy) {
-        return {
-            x: 325 + (gx - CENTER_X) / (ZOOM / 300),
-            y: 320 + (gy - CENTER_Y) / (ZOOM / 300)
-        };
-    }
-
-    function updateLayer(layerId, data, className) {
+    function updateLayer(layerId, data, className, isOnline) {
         const container = document.getElementById(layerId);
-        const players = data ? (Array.isArray(data) ? data : [data]) :[];
-        
+        const players = (isOnline && data) ? (Array.isArray(data) ? data : [data]) : [];
         while (container.children.length < players.length) {
             const div = document.createElement("div");
-            div.className = "dot " + className;
+            div.className = "hero-dot " + className;
             container.appendChild(div);
         }
-        while (container.children.length > players.length) {
-            container.lastChild.remove();
-        }
-
+        while (container.children.length > players.length) container.lastChild.remove();
         players.forEach((p, i) => {
             const dot = container.children[i];
-            const pos = calculatePos(p.x, p.y);
-            dot.style.left = pos.x + "px";
-            dot.style.top = pos.y + "px";
-            
-            let foundIcon = idToIcon[p.id];
-
-            if (!foundIcon) {
-                const searchStr = ((p.model || "") + " " + (p.vdata || "")).toLowerCase();
-                for (let key in heroIcons) {
-                    if (searchStr.includes(key)) {
-                        foundIcon = heroIcons[key];
-                        break;
-                    }
-                }
-            }
-
-            if (foundIcon) {
-                dot.style.backgroundImage = `url('${BASE_ICON_URL}${foundIcon}')`;
-                dot.innerText = "";
-            } else {
-                dot.style.backgroundImage = "none";
-                dot.innerText = p.id || "?";
-            }
+            dot.style.left = (300 + (p.x - CENTER_X) / (ZOOM / 300)) + "px";
+            dot.style.top = (300 + (p.y - CENTER_Y) / (ZOOM / 300)) + "px";
+            if (p.id && idToIcon[p.id]) dot.style.backgroundImage = `url('${BASE_ICON_URL}${idToIcon[p.id]}')`;
         });
     }
 
     async function tick() {
+        const start = Date.now();
         try {
-            const res = await fetch(dbUrl + "?t=" + Date.now());
+            const res = await fetch(dbUrl + "?t=" + start);
             const data = await res.json();
-            if (!data) return;
-
-            updateLayer("layer-enemies", data.enemies ||[], "enemy-dot");
-            updateLayer("layer-allies", data.allies ||[], "ally-dot");
+            const ping = Date.now() - start;
             
-            if (data.local) {
-                updateLayer("layer-local", [data.local], "local-dot");
-            } else {
-                updateLayer("layer-local",[], "local-dot");
-            }
+            if (data && data.sent_at) {
+                const diff = (Math.floor(Date.now() / 1000) - data.sent_at).toFixed(1);
+                const isOnline = diff < 7;
+                
+                const statusHtml = isOnline ? `<span class="stat-online">ONLINE</span>` : `<span class="stat-offline">OFFLINE</span>`;
+                
+                document.getElementById("wm-content").innerHTML = 
+                    `larpsense <span class="divider">|</span> ${statusHtml} <span class="divider">|</span> PING: ${ping}ms <span class="divider">|</span> DATA AGE: ${diff}s`;
 
-            document.getElementById("status").innerText = "larpsense alpha: Connected";
-        } catch(e) { 
-            console.error(e); 
-        }
+                const radar = document.getElementById("radar");
+                if (isOnline) radar.classList.remove("offline-mode"); else radar.classList.add("offline-mode");
+
+                updateLayer("layer-enemies", data.enemies, "enemy-dot", isOnline);
+                updateLayer("layer-allies", data.allies, "ally-dot", isOnline);
+                updateLayer("layer-local", data.local, "local-dot", isOnline);
+            }
+        } catch(e) { }
     }
 
     setInterval(tick, 500);
