@@ -1,3 +1,4 @@
+// меняй линк свой
 local DB_URL = "https://yourlink.firebasedatabase.app/radar.json"
 
 local UPDATE_INTERVAL = 0.5 
