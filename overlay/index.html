@@ -25,11 +25,11 @@
             position: absolute; top: 20px; right: 20px; z-index: 10001;
         }
         #wm-wrapper {
-position: absolute;
-    z-index: 10000;
-    width: 0;
-    height: 0;
-    overflow: visible;
+            position: absolute;
+            z-index: 10000;
+            width: 0;
+            height: 0;
+            overflow: visible;
         }
         #radar-wrapper {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1;
@@ -95,24 +95,23 @@ position: absolute;
         .select-items div:hover { background-color: rgb(40, 40, 40); color: #ffffff; }
         .select-items div.active-option { color: #ffffff; background-color: rgb(35, 35, 35); }
 
-     .wm-container { 
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    
-    background-color: rgb(17, 17, 17);
-    border: 1px solid rgb(45, 45, 45);
-    padding: 5px 15px;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
-    z-index: 10000;
-    border-radius: 2px;
-    transition: opacity 0.4s ease;
-    transform: scale(var(--wm-scale));
-    transform-origin: right center;
-    white-space: nowrap;
-}
+        .wm-container { 
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            background-color: rgb(17, 17, 17);
+            border: 1px solid rgb(45, 45, 45);
+            padding: 5px 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+            z-index: 10000;
+            border-radius: 2px;
+            transition: opacity 0.4s ease;
+            transform: scale(var(--wm-scale));
+            transform-origin: right center;
+            white-space: nowrap;
+        }
         .wm-text { font-size: 12px; color: #ffffff; white-space: nowrap; font-family: 'Verdana', sans-serif; text-shadow: 1px 1px 0px #000; }
         .divider { color: #444; margin: 0 6px; }
         .stat-online { color: #44ff44; font-weight: bold; }
@@ -131,18 +130,12 @@ position: absolute;
             transition: transform 0.2s ease-out, filter 0.6s ease, opacity 0.6s ease; 
             transform-origin: center center; 
         }
-        .radar-container.offline-mode { opacity: 0.4; filter: grayscale(80%) brightness(0.6); }
+        .radar-container.offline-mode { filter: grayscale(80%) brightness(0.6); }
         .radar-container.is-overlay { background-image: none !important; background-color: transparent !important; box-shadow: none !important; }
 
         .hero-dot { position: absolute; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); z-index: 1000; transition: left 0.2s linear, top 0.2s linear; background-size: cover; background-color: #111; }
-        .enemy-dot { 
-    border-color: #cb360f; 
-    background-color: #cb360f !important; 
-}
-        .ally-dot  { 
-    border-color: #c4b9a6; 
-    background-color: #c4b9a6 !important; 
-}
+        .enemy-dot { border-color: #cb360f; background-color: #cb360f !important; }
+        .ally-dot  { border-color: #c4b9a6; background-color: #c4b9a6 !important; }
         .local-dot { border-color: #ffffff; z-index: 1010; border-width: 3px; }
 
         .midboss-icon { position: absolute; top: 50%; left: 50%; width: 1000px; height: 950px; background-size: contain; background-repeat: no-repeat; background-position: center center; transform: translate(-49.65%, -50.8%); z-index: 1500; filter: drop-shadow(0 0 6px rgba(0,0,0,0.8)); }
@@ -168,6 +161,15 @@ position: absolute;
                         <span class="slider-val" id="wrap-map-zoom"><span id="val-map-zoom">100</span>%</span>
                         <div class="slider-fill" id="fill-map-zoom"></div>
                         <input type="range" id="cfg-map-zoom" class="skeet-slider" min="50" max="200" value="100">
+                    </div>
+                </div>
+
+                <div class="slider-wrapper">
+                    <div class="slider-title">radar opacity</div>
+                    <div class="slider-container">
+                        <span class="slider-val" id="wrap-opacity"><span id="val-opacity">100</span>%</span>
+                        <div class="slider-fill" id="fill-opacity"></div>
+                        <input type="range" id="cfg-opacity" class="skeet-slider" min="10" max="100" value="100">
                     </div>
                 </div>
 
@@ -245,7 +247,7 @@ position: absolute;
     </div>
 
 <script>
-    const dbUrl = "https://yrlunk.firebasedatabase.app/radar.json";
+    const dbUrl = "https://urlink.firebasedatabase.app/radar.json";
     const CENTER_X = 1210, CENTER_Y = 835;
     const ZOOM_BASE = 185; 
 
@@ -263,8 +265,7 @@ position: absolute;
 
     const idToIcon = { 1: "Infernus.png", 2: "Seven.png", 3: "Vindicta.png", 4: "Lady_Geist.png", 6: "Abrams.png", 7: "Wraith.png", 8: "McGinnis.png", 10: "Paradox.png", 11: "Dynamo.png", 12: "Kelvin.png", 13: "Haze.png", 14: "Holliday.png", 15: "Bebop.png", 16: "Calico.png", 17: "Grey_Talon.png", 18: "Mo_&_Krill.png", 19: "Shiv.png", 20: "Ivy.png", 25: "Warden.png", 27: "Yamato.png", 31: "Lash.png", 35: "Viscous.png", 50: "Pocket.png", 52: "Mirage.png", 58: "Vyper.png", 60: "Sinclair.png", 63: "Mina.png", 64: "Drifter.png", 65: "Venator.png", 66: "Victor.png", 67: "Paige.png", 69: "The_Doorman.png", 72: "Billy.png", 76: "Graves.png", 77: "Apollo.png", 79: "Rem.png", 80: "Silver.png", 81: "Celeste.png" };
 
-    let cfg = { size: 44, showWm: true, showPing: true, showAge: true, wmScale: 100, mapVersion: 'new', mapZoom: 100, overlayMode: true, hideMBIcon: false, stretchX: 100, stretchY: 100, hideLocal: false, };
-    hideAllies: false
+    let cfg = { size: 44, showWm: true, showPing: true, showAge: true, wmScale: 100, mapVersion: 'new', mapZoom: 100, overlayMode: true, hideMBIcon: false, stretchX: 100, stretchY: 100, hideLocal: false, hideAllies: false, opacity: 100 };
 
     const mapSelect = document.getElementById('map-select');
     const mapSelectText = document.getElementById('map-select-text');
@@ -297,6 +298,7 @@ position: absolute;
         if(cfg.mapZoom === undefined) cfg.mapZoom = 100;
         if(cfg.stretchX === undefined) cfg.stretchX = 100;
         if(cfg.stretchY === undefined) cfg.stretchY = 100;
+        if(cfg.opacity === undefined) cfg.opacity = 100;
         
         if (cfg.overlayMode) {
             cfg.mapVersion = 'new';
@@ -310,17 +312,12 @@ position: absolute;
         document.getElementById('val-map-zoom').innerText = cfg.mapZoom;
         document.getElementById('val-stretch-x').innerText = cfg.stretchX;
         document.getElementById('val-stretch-y').innerText = cfg.stretchY;
+        document.getElementById('val-opacity').innerText = cfg.opacity;
+        
         document.getElementById('cfg-hide-local').checked = cfg.hideLocal;
         document.getElementById('cfg-hide-allies').checked = cfg.hideAllies;
-        document.getElementById('cfg-hide-local').addEventListener('change', (e) => { 
-    cfg.hideLocal = e.target.checked; 
-    save(); 
-});
 
-document.getElementById('cfg-hide-allies').addEventListener('change', (e) => { 
-    cfg.hideAllies = e.target.checked; 
-    save(); 
-});
+        document.getElementById('radar').style.opacity = cfg.opacity / 100;
         
         mapOptions.forEach(opt => {
             if (opt.getAttribute('data-val') === cfg.mapVersion) {
@@ -334,6 +331,7 @@ document.getElementById('cfg-hide-allies').addEventListener('change', (e) => {
         updateSliderVisual('cfg-map-zoom', 'fill-map-zoom', 'wrap-map-zoom');
         updateSliderVisual('cfg-stretch-x', 'fill-stretch-x', 'wrap-stretch-x');
         updateSliderVisual('cfg-stretch-y', 'fill-stretch-y', 'wrap-stretch-y');
+        updateSliderVisual('cfg-opacity', 'fill-opacity', 'wrap-opacity');
 
         const actualZoom = (cfg.mapZoom / 100) * BASE_ZOOM;
         const actualStretchX = (cfg.stretchX / 100) * BASE_STRETCH_X;
@@ -361,23 +359,16 @@ document.getElementById('cfg-hide-allies').addEventListener('change', (e) => {
             document.getElementById('cfg-size').value = cfg.size;
             document.getElementById('cfg-wm-scale').value = cfg.wmScale;
             document.getElementById('cfg-map-zoom').value = cfg.mapZoom;
+            document.getElementById('cfg-opacity').value = cfg.opacity;
             
-            if (document.getElementById('cfg-stretch-x')) {
-                document.getElementById('cfg-stretch-x').value = cfg.stretchX;
-            }
-            if (document.getElementById('cfg-stretch-y')) {
-                document.getElementById('cfg-stretch-y').value = cfg.stretchY;
-            }
+            if (document.getElementById('cfg-stretch-x')) document.getElementById('cfg-stretch-x').value = cfg.stretchX;
+            if (document.getElementById('cfg-stretch-y')) document.getElementById('cfg-stretch-y').value = cfg.stretchY;
 
             document.getElementById('cfg-wm').checked = cfg.showWm;
             document.getElementById('cfg-ping').checked = cfg.showPing;
             document.getElementById('cfg-age').checked = cfg.showAge;
-            if(document.getElementById('cfg-overlay')) {
-                document.getElementById('cfg-overlay').checked = cfg.overlayMode;
-            }
-            if(document.getElementById('cfg-hide-mb')) {
-                document.getElementById('cfg-hide-mb').checked = cfg.hideMBIcon;
-            }
+            if(document.getElementById('cfg-overlay')) document.getElementById('cfg-overlay').checked = cfg.overlayMode;
+            if(document.getElementById('cfg-hide-mb')) document.getElementById('cfg-hide-mb').checked = cfg.hideMBIcon;
         }
         applyAll();
     }
@@ -397,6 +388,9 @@ document.getElementById('cfg-hide-allies').addEventListener('change', (e) => {
     document.getElementById('cfg-wm-scale').addEventListener('input', (e) => { cfg.wmScale = e.target.value; applyAll(); });
     document.getElementById('cfg-wm-scale').addEventListener('change', save);
     
+    document.getElementById('cfg-opacity').addEventListener('input', (e) => { cfg.opacity = e.target.value; applyAll(); });
+    document.getElementById('cfg-opacity').addEventListener('change', save);
+    
     document.getElementById('cfg-wm').addEventListener('change', (e) => { cfg.showWm = e.target.checked; applyAll(); save(); });
     document.getElementById('cfg-ping').addEventListener('change', (e) => { cfg.showPing = e.target.checked; save(); });
     document.getElementById('cfg-age').addEventListener('change', (e) => { cfg.showAge = e.target.checked; save(); });
@@ -412,6 +406,9 @@ document.getElementById('cfg-hide-allies').addEventListener('change', (e) => {
         applyAll(); save(); 
     });
 
+    document.getElementById('cfg-hide-local').addEventListener('change', (e) => { cfg.hideLocal = e.target.checked; save(); });
+    document.getElementById('cfg-hide-allies').addEventListener('change', (e) => { cfg.hideAllies = e.target.checked; save(); });
+
     document.getElementById('cfg-hide-mb').addEventListener('change', (e) => { 
         cfg.hideMBIcon = e.target.checked; 
         applyAll(); save(); 
@@ -426,7 +423,6 @@ document.getElementById('cfg-hide-allies').addEventListener('change', (e) => {
     function updateIconSizes() {
         document.querySelectorAll('.hero-dot').forEach(dot => {
             let s = Number(cfg.size); if (dot.classList.contains('local-dot')) s += 6;
-            
             dot.style.width = s + 'px'; 
             dot.style.height = s + 'px';
             dot.style.transform = `translate(-50%, -50%)`;
@@ -481,11 +477,8 @@ document.getElementById('cfg-hide-allies').addEventListener('change', (e) => {
                 radar.style.backgroundImage = `url('${activeMapImg}')`;
 
                 updateLayer("layer-enemies", data.enemies, "enemy-dot", isOnline, ZOOM_BASE);
-                updateLayer("layer-allies", data.allies, "ally-dot", isOnline, ZOOM_BASE);
-                updateLayer("layer-local", data.local, "local-dot", isOnline, ZOOM_BASE);
-updateLayer("layer-enemies", data.enemies, "enemy-dot", isOnline, ZOOM_BASE);
-updateLayer("layer-allies", data.allies, "ally-dot", isOnline && !cfg.hideAllies, ZOOM_BASE);
-updateLayer("layer-local", data.local, "local-dot", isOnline && !cfg.hideLocal, ZOOM_BASE);
+                updateLayer("layer-allies", data.allies, "ally-dot", isOnline && !cfg.hideAllies, ZOOM_BASE);
+                updateLayer("layer-local", data.local, "local-dot", isOnline && !cfg.hideLocal, ZOOM_BASE);
 
                 const timerBox = document.getElementById('mb-timer-box');
                 const iconLayer = document.getElementById('mb-icon-layer');
@@ -502,8 +495,7 @@ updateLayer("layer-local", data.local, "local-dot", isOnline && !cfg.hideLocal, 
                     } else if (data.mb.rem > 0) {
                         let m = Math.floor(data.mb.rem / 60);
                         let s = Math.floor(data.mb.rem % 60);
-                        timerBox.innerText = `
-                        ${m}:${s.toString().padStart(2, '0')}`;
+                        timerBox.innerText = `\n                        ${m}:${s.toString().padStart(2, '0')}`;
                         timerBox.style.display = 'block';
                         iconLayer.innerHTML = '';
                     } else {
