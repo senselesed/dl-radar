@@ -15,5 +15,5 @@ set(ref(db, 'radar'), {
     enemies: [0]
 }).then(() => {
     console.log("Структура 'radar' успешно создана!");
-    process.exit(); // Завершаем работу скрипта
+    process.exit();
 });
