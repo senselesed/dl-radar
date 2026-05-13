@@ -7,7 +7,7 @@ local is_busy = false
 
 local cached_mb_class = nil
 local mb_was_alive = false
-local next_mb_respawn = 600 -- 10 минут (600 сек) для первоначального спавна
+local next_mb_respawn = 600
 
 local menu_parent = Menu.Create("Miscellaneous", "Utility", "Cloud Radar", "Skeet Visuals", "Cloud Radar")
 local ui_radar_enable = menu_parent:Switch("Enable Radar", true)
@@ -24,7 +24,6 @@ local function get_hero_data(hero_obj)
     }
 end
 
--- Умная проверка статуса мидбосса
 local function check_midboss_alive()
     if cached_mb_class and entity_list then
         local ents = entity_list.by_class_name(cached_mb_class)
@@ -56,7 +55,6 @@ callback.on_draw:set(function()
 
     local lp = HERO_LIB.lp
     
-    -- Получаем внутриигровое время, которое замирает во время пауз
     local gt = 0
     if game_rules and game_rules.game_time then
         gt = game_rules.game_time()
@@ -66,24 +64,20 @@ callback.on_draw:set(function()
 
     local is_midboss_alive = check_midboss_alive()
 
-    -- Логика таймера
     if is_midboss_alive then
         mb_was_alive = true
         next_mb_respawn = 0
     else
         if mb_was_alive then
-            -- Босса только что убили
             mb_was_alive = false
-            next_mb_respawn = gt + 420 -- 7 минут (420 сек) от текущего времени
+            next_mb_respawn = gt + 420
         end
     end
 
-    -- Страховка для старта матча (пока босс еще ни разу не появлялся)
     if gt < 600 and not is_midboss_alive and not mb_was_alive then
         next_mb_respawn = 600
     end
 
-    -- Считаем оставшееся время
     local rem = next_mb_respawn - gt
     if rem < 0 then rem = 0 end
 
@@ -95,7 +89,7 @@ callback.on_draw:set(function()
         is_sapphire = (lp.m_iTeamNum == Enum.TeamNum.TEAM_DIRE),
         mb = {
             a = is_midboss_alive,
-            rem = math.floor(rem) -- Отправляем точное количество оставшихся секунд
+            rem = math.floor(rem)
         }
     }
 
